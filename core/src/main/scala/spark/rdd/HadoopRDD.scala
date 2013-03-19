@@ -16,6 +16,7 @@ import org.apache.hadoop.mapred.Reporter
 import org.apache.hadoop.util.ReflectionUtils
 
 import spark.{Dependency, RDD, SerializableWritable, SparkContext, Split, TaskContext}
+import org.apache.hadoop.conf.Configurable
 
 
 /**
@@ -51,6 +52,9 @@ class HadoopRDD[K, V](
   @transient
   val splits_ : Array[Split] = {
     val inputFormat = createInputFormat(conf)
+    if (inputFormat.isInstanceOf[Configurable]) {
+      inputFormat.asInstanceOf[Configurable].setConf(conf)
+    }
     val inputSplits = inputFormat.getSplits(conf, minSplits)
     val array = new Array[Split](inputSplits.size)
     for (i <- 0 until inputSplits.size) {
@@ -72,6 +76,9 @@ class HadoopRDD[K, V](
 
     val conf = confBroadcast.value.value
     val fmt = createInputFormat(conf)
+    if (fmt.isInstanceOf[Configurable]) {
+      fmt.asInstanceOf[Configurable].setConf(conf)
+    }
     reader = fmt.getRecordReader(split.inputSplit.value, conf, Reporter.NULL)
 
     // Register an on-task-completion callback to close the input stream.
