@@ -45,7 +45,7 @@ object SparkBuild extends Build {
   def sharedSettings = Defaults.defaultSettings ++ Seq(
     organization       := "org.spark-project",
     version            := "0.8.0-SNAPSHOT",
-    scalaVersion       := "2.10.1",
+    scalaVersion       := "2.10.2",
     scalacOptions      := Seq("-unchecked", "-optimize", "-deprecation"),
     unmanagedJars in Compile <<= baseDirectory map { base => (base / "lib" ** "*.jar").classpath },
     retrieveManaged := true,
