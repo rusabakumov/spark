@@ -236,7 +236,7 @@ class StreamingContext private (
     ): DStream[String] = {
     val kafkaParams = Map[String, String](
       "zk.connect" -> zkQuorum, "groupid" -> groupId, "zk.connectiontimeout.ms" -> "10000")
-    kafkaStream[String, kafka.serializer.StringDecoder](kafkaParams, topics, storageLevel)
+    kafkaStream[String, kafka.serializer.StringDecoder, kafka.serializer.StringDecoder](kafkaParams, topics, storageLevel)
   }
 
   /**
@@ -247,12 +247,12 @@ class StreamingContext private (
    *               in its own thread.
    * @param storageLevel  Storage level to use for storing the received objects
    */
-  def kafkaStream[T: ClassTag, D <: kafka.serializer.Decoder[_]: Manifest](
+  def kafkaStream[T: ClassTag, KD <: kafka.serializer.Decoder[_]: Manifest, VD <: kafka.serializer.Decoder[_]: Manifest](
       kafkaParams: Map[String, String],
       topics: Map[String, Int],
       storageLevel: StorageLevel
     ): DStream[T] = {
-    val inputStream = new KafkaInputDStream[T, D](this, kafkaParams, topics, storageLevel)
+    val inputStream = new KafkaInputDStream[T, KD, VD](this, kafkaParams, topics, storageLevel)
     registerInputStream(inputStream)
     inputStream
   }

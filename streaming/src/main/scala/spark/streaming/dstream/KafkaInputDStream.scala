@@ -29,7 +29,7 @@ import scala.reflect.ClassTag
  * @param storageLevel RDD storage level.
  */
 private[streaming]
-class KafkaInputDStream[T: ClassTag, D <: Decoder[_]: Manifest](
+class KafkaInputDStream[T: ClassTag, KD <: Decoder[_]: Manifest, VD <: Decoder[_]: Manifest](
     @transient ssc_ : StreamingContext,
     kafkaParams: Map[String, String],
     topics: Map[String, Int],
@@ -38,13 +38,13 @@ class KafkaInputDStream[T: ClassTag, D <: Decoder[_]: Manifest](
 
 
   def getReceiver(): NetworkReceiver[T] = {
-    new KafkaReceiver[T, D](kafkaParams, topics, storageLevel)
+    new KafkaReceiver[T, KD, VD](kafkaParams, topics, storageLevel)
         .asInstanceOf[NetworkReceiver[T]]
   }
 }
 
 private[streaming]
-class KafkaReceiver[T: ClassTag, D <: Decoder[_]: Manifest](
+class KafkaReceiver[T: ClassTag, KD <: Decoder[_]: Manifest, VD <: Decoder[_]: Manifest](
   kafkaParams: Map[String, String],
   topics: Map[String, Int],
   storageLevel: StorageLevel
@@ -66,27 +66,28 @@ class KafkaReceiver[T: ClassTag, D <: Decoder[_]: Manifest](
     // In case we are using multiple Threads to handle Kafka Messages
     val executorPool = Executors.newFixedThreadPool(topics.values.reduce(_ + _))
 
-    logInfo("Starting Kafka Consumer Stream with group: " + kafkaParams("groupid"))
+    logInfo("Starting Kafka Consumer Stream with group: " + kafkaParams("group.id"))
 
     // Kafka connection properties
     val props = new Properties()
     kafkaParams.foreach(param => props.put(param._1, param._2))
 
     // Create the connection to the cluster
-    logInfo("Connecting to Zookeper: " + kafkaParams("zk.connect"))
+    logInfo("Connecting to Zookeper: " + kafkaParams("zookeeper.connect"))
     val consumerConfig = new ConsumerConfig(props)
     consumerConnector = Consumer.create(consumerConfig)
-    logInfo("Connected to " + kafkaParams("zk.connect"))
+    logInfo("Connected to " + kafkaParams("zookeeper.connect"))
 
     // When autooffset.reset is defined, it is our responsibility to try and whack the
     // consumer group zk node.
     if (kafkaParams.contains("autooffset.reset")) {
-      tryZookeeperConsumerGroupCleanup(kafkaParams("zk.connect"), kafkaParams("groupid"))
+      tryZookeeperConsumerGroupCleanup(kafkaParams("zookeeper.connect"), kafkaParams("group.id"))
     }
 
     // Create Threads for each Topic/Message Stream we are listening
-    val decoder = manifest[D].runtimeClass.newInstance.asInstanceOf[Decoder[T]]
-    val topicMessageStreams = consumerConnector.createMessageStreams(topics, decoder)
+    val keyDecoder = manifest[KD].runtimeClass.newInstance.asInstanceOf[Decoder[T]]
+    val valueDecoder = manifest[VD].runtimeClass.newInstance.asInstanceOf[Decoder[T]]
+    val topicMessageStreams = consumerConnector.createMessageStreams(topics, keyDecoder, valueDecoder)
 
     // Start the messages handler for each partition
     topicMessageStreams.values.foreach { streams =>
@@ -95,7 +96,7 @@ class KafkaReceiver[T: ClassTag, D <: Decoder[_]: Manifest](
   }
 
   // Handles Kafka Messages
-  private class MessageHandler[T: ClassTag](stream: KafkaStream[T]) extends Runnable {
+  private class MessageHandler[T: ClassTag](stream: KafkaStream[T, T]) extends Runnable {
     def run() {
       logInfo("Starting MessageHandler.")
       for (msgAndMetadata <- stream) {

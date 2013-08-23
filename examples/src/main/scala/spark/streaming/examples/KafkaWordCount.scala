@@ -71,8 +71,11 @@ object KafkaWordCountProducer {
         (1 to wordsPerMessage.toInt).map(x => scala.util.Random.nextInt(10).toString).mkString(" ")
       }.toArray
       println(messages.mkString(","))
-      val data = new ProducerData[String, String](topic, messages)
-      producer.send(data)
+
+      val data =
+        messages map (m => new KeyedMessage[String, String](topic, m)) toList
+
+      producer.send(data:_*)
       Thread.sleep(100)
     }
   }

@@ -162,17 +162,19 @@ class JavaStreamingContext(val ssc: StreamingContext) {
    * in its own thread.
    * @param storageLevel RDD storage level. Defaults to memory-only
    */
-  def kafkaStream[T, D <: kafka.serializer.Decoder[_]](
+  def kafkaStream[T, KD <: kafka.serializer.Decoder[_], VD <: kafka.serializer.Decoder[_]](
     typeClass: Class[T],
-    decoderClass: Class[D],
+    keyDecoderClass: Class[KD],
+    valueDecoderClass: Class[VD],
     kafkaParams: JMap[String, String],
     topics: JMap[String, JInt],
     storageLevel: StorageLevel)
   : JavaDStream[T] = {
     implicit val cmt: ClassTag[T] =
       implicitly[ClassTag[AnyRef]].asInstanceOf[ClassTag[T]]
-    implicit val cmd: Manifest[D] = implicitly[Manifest[AnyRef]].asInstanceOf[Manifest[D]]
-    ssc.kafkaStream[T, D](
+    implicit val keyCmd: Manifest[KD] = implicitly[Manifest[AnyRef]].asInstanceOf[Manifest[KD]]
+    implicit val valueCmd: Manifest[VD] = implicitly[Manifest[AnyRef]].asInstanceOf[Manifest[VD]]
+    ssc.kafkaStream[T, KD, VD](
       kafkaParams.toMap,
       Map(topics.mapValues(_.intValue()).toSeq: _*),
       storageLevel)
