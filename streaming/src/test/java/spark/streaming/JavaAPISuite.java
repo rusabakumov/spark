@@ -1210,7 +1210,7 @@ public class JavaAPISuite implements Serializable {
     HashMap<String, String> kafkaParams = Maps.newHashMap();
     kafkaParams.put("zk.connect","localhost:12345");
     kafkaParams.put("groupid","consumer-group");
-    JavaDStream test3 = ssc.kafkaStream(String.class, StringDecoder.class, kafkaParams, topics,
+    JavaDStream test3 = ssc.kafkaStream(String.class, StringDecoder.class, StringDecoder.class, kafkaParams, topics,
       StorageLevel.MEMORY_AND_DISK());
   }
 

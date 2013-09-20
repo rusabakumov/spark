@@ -252,7 +252,7 @@ class InputStreamsSuite extends TestSuiteBase with BeforeAndAfter {
 
     // Test specifying decoder
     val kafkaParams = Map("zk.connect"->"localhost:12345","groupid"->"consumer-group")
-    val test3 = ssc.kafkaStream[String, kafka.serializer.StringDecoder](kafkaParams, topics, StorageLevel.MEMORY_AND_DISK)
+    val test3 = ssc.kafkaStream[String, kafka.serializer.StringDecoder, kafka.serializer.StringDecoder](kafkaParams, topics, StorageLevel.MEMORY_AND_DISK)
   }
 }
 
